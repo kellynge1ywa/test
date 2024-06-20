@@ -1,5 +1,6 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
+using Models;
 
 namespace test;
 
@@ -20,20 +21,15 @@ public class UserRepository : Iuser
                 return "Please enter firstname and lastname";
             }
 
-            var userNames= dbContext.Users.Where(person=> person.Id != user.Id && person.FirstName.ToLower().Equals(user.FirstName.Trim().ToLower()) && person.LastName.ToLower().Equals(user.LastName)).FirstOrDefault();
-            if(userNames != null){
-                return  $"{user.FirstName} and {user.LastName} exists";
-            }
-            // var newUser= new User
-            // {
-            //     Id=Guid.NewGuid(),
-            //     FirstName=user.FirstName,
-            //     LastName=user.LastName,
-            //     Age=user.Age
+            var existingUser= await dbContext.Users.Where(person=> person.Email == user.Email.Trim().ToLower() ).FirstOrDefaultAsync();
+             if(existingUser !=null){
+                return  $"{user.Email} exists";
+             }
 
-            // };
+           
 
             dbContext.Users.Add(user);
+             
             await dbContext.SaveChangesAsync();
             dbTransaction.Commit();
             return $"{user.FirstName} added successfully";
@@ -49,14 +45,24 @@ public class UserRepository : Iuser
         }
     }
 
-    public Task<string> DeleteUser(User user)
+    public async Task<string> DeleteUser(User user)
     {
-        throw new NotImplementedException();
+        try
+        {
+            dbContext.Users.Remove(user);
+            await dbContext.SaveChangesAsync();
+            return $"{user.FirstName} {user.LastName} has been deleted!";
+
+        }
+        catch (Exception ex)
+        {
+            return $"Internal server error {ex}";
+        }
     }
 
-    public Task<User> GetUser(Guid Id)
+    public async Task<User> GetUser(Guid Id)
     {
-        throw new NotImplementedException();
+        return await dbContext.Users.Where(user=>user.Id == Id).FirstOrDefaultAsync();
     }
 
     public async Task<List<User>> GetUsers()
@@ -64,8 +70,33 @@ public class UserRepository : Iuser
         return await dbContext.Users.ToListAsync();
     }
 
-    public Task<string> UpdateUser(User user)
+    public async Task<string> UpdateUser(Guid Id,User user)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var toBeUpdated= await dbContext.Users.Where(person=>person.Id == Id).FirstOrDefaultAsync();
+            if (toBeUpdated != null)
+            {
+                toBeUpdated.Id=user.Id;
+                toBeUpdated.FirstName=user.FirstName;
+                toBeUpdated.LastName=user.LastName;
+                toBeUpdated.Email=user.Email;
+                toBeUpdated.Age=user.Age;
+
+                await dbContext.SaveChangesAsync();
+            return $"{toBeUpdated.FirstName} updated successfully!!";
+
+            }
+
+            return "Product not found";
+
+            // dbContext.Users.Update(toBeUpdated);
+            
+
+        }
+        catch (Exception ex)
+        {
+            return $"Internal server error {ex}";
+        }
     }
 }
